@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Appliance Health AI | Mobile Diagnostics</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="mobile-app-wrapper">
+    <!-- App Header -->
+    <header class="app-header">
+      <div class="header-top">
+        <div class="brand-group">
+          <div class="app-avatar">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-title">AcousticAI <span class="badge-tag">EDGE</span></div>
+            <div class="brand-subtitle">Sound & Vibration Health Engine</div>
+          </div>
+        </div>
+
+        <div id="relayStatusBadge" class="relay-badge nominal">
+          <span class="pulse-dot"></span>
+          <span id="relayStatusText">230V ON</span>
+        </div>
+      </div>
+
+      <!-- Appliance Selector Segmented Bar -->
+      <div class="appliance-picker">
+        <button class="picker-tab" data-app="refrigerator" onclick="switchAppliance('refrigerator')">
+          <span class="tab-icon">❄️</span> Fridge
+        </button>
+        <button class="picker-tab" data-app="washing_machine" onclick="switchAppliance('washing_machine')">
+          <span class="tab-icon">🧺</span> Washer
+        </button>
+        <button class="picker-tab active" data-app="water_pump" onclick="switchAppliance('water_pump')">
+          <span class="tab-icon">💧</span> Pump
+        </button>
+      </div>
+    </header>
+
+    <!-- App Main Body with Navigation Views -->
+    <main class="app-content">
+      <!-- VIEW 1: LIVE MONITOR -->
+      <div id="viewMonitor" class="app-view active">
+        <!-- Hero Health Card -->
+        <div class="hero-card">
+          <div class="hero-header">
+            <div>
+              <span class="section-label">DIAGNOSTIC STATUS</span>
+              <h2 id="faultClassValue" class="hero-status-text">NORMAL</h2>
+            </div>
+            <div id="severityBadge" class="severity-pill low">LOW RISK</div>
+          </div>
+
+          <div class="health-radial-container">
+            <div class="radial-gauge-wrapper">
+              <svg class="radial-svg" viewBox="0 0 120 120">
+                <circle class="gauge-bg" cx="60" cy="60" r="50" />
+                <circle class="gauge-progress" id="gaugeProgressCircle" cx="60" cy="60" r="50" />
+              </svg>
+              <div class="radial-center-content">
+                <span id="healthScoreValue" class="radial-value">100%</span>
+                <span class="radial-label">HEALTH SCORE</span>
+              </div>
+            </div>
+
+            <div class="mini-stats-column">
+              <div class="mini-stat-card">
+                <span class="mini-label">Anomaly Score</span>
+                <span id="anomalyScoreValue" class="mini-val text-blue">0.000</span>
+                <div class="mini-bar"><div id="anomalyBarFill" class="mini-bar-fill bg-blue" style="width: 0%;"></div></div>
+              </div>
+              <div class="mini-stat-card">
+                <span class="mini-label">Confidence</span>
+                <span id="faultConfValue" class="mini-val text-emerald">99.8%</span>
+                <div class="mini-bar"><div id="confBarFill" class="mini-bar-fill bg-emerald" style="width: 99%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div id="bannerTripWarning" class="trip-alert-banner">
+            <div class="banner-icon">⚠️</div>
+            <div class="banner-text">
+              <strong>Emergency Power Cutoff Active</strong>
+              <span>Persistent mechanical failure detected. Motor disconnected.</span>
+            </div>
+            <button class="btn-banner-reset" onclick="resetRelay()">RESET</button>
+          </div>
+        </div>
+
+        <!-- Waveform Visualizers Card -->
+        <div class="widget-card">
+          <div class="widget-header">
+            <div class="widget-title-group">
+              <span class="widget-icon bg-light-blue">🎙️</span>
+              <div>
+                <h3 class="widget-title">Acoustic Sensor Stream</h3>
+                <span class="widget-subtitle">16 kHz Phone / Hub Microphone</span>
+              </div>
+            </div>
+            <span class="live-pill">LIVE</span>
+          </div>
+          <div class="canvas-box audio-box">
+            <canvas id="audioCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- 3-Axis Vibration Card -->
+        <div class="widget-card">
+          <div class="widget-header">
+            <div class="widget-title-group">
+              <span class="widget-icon bg-light-emerald">〰️</span>
+              <div>
+                <h3 class="widget-title">3-Axis Vibration Telemetry</h3>
+                <span class="widget-subtitle">500 Hz Accelerometer Orbit</span>
+              </div>
+            </div>
+            <div class="axis-legend">
+              <span class="axis-item"><span class="dot-x"></span>X</span>
+              <span class="axis-item"><span class="dot-y"></span>Y</span>
+              <span class="axis-item"><span class="dot-z"></span>Z</span>
+            </div>
+          </div>
+          <div class="canvas-box vib-box">
+            <canvas id="vibCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Mel Spectrogram Card -->
+        <div class="widget-card">
+          <div class="widget-header">
+            <div class="widget-title-group">
+              <span class="widget-icon bg-light-purple">🌈</span>
+              <div>
+                <h3 class="widget-title">Mel-Spectrogram Heatmap</h3>
+                <span class="widget-subtitle">128 Frequency Bands</span>
+              </div>
+            </div>
+            <span class="spec-label">Log Mel Energy</span>
+          </div>
+          <div class="canvas-box spec-box">
+            <canvas id="specCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: AI FAULT INJECTION & AUTOPILOT -->
+      <div id="viewControls" class="app-view">
+        <div class="widget-card">
+          <div class="widget-header">
+            <div class="widget-title-group">
+              <span class="widget-icon bg-light-rose">🧪</span>
+              <div>
+                <h3 class="widget-title">AI Fault Simulation Deck</h3>
+                <span class="widget-subtitle">Inject real mechanical defects</span>
+              </div>
+            </div>
+            <button class="btn-chip-clear" onclick="clearFault()">Clear All</button>
+          </div>
+
+          <p class="section-desc">Select a physical failure mode to test edge model detection & emergency cutoff logic:</p>
+          <div class="fault-chips-grid" id="faultButtonsContainer">
+            <!-- Dynamically populated chips -->
+          </div>
+
+          <div class="slider-box">
+            <div class="slider-info">
+              <span>Defect Severity / Intensity</span>
+              <strong id="intensityValue">80%</strong>
+            </div>
+            <input type="range" id="intensitySlider" min="0.2" max="1.0" step="0.05" value="0.8" class="touch-slider">
+          </div>
+
+          <div class="duration-select-box">
+            <span>Auto-Clear Timer:</span>
+            <select id="durationSelect" class="clean-select">
+              <option value="0">Indefinite (Manual Clear)</option>
+              <option value="3">3 Seconds</option>
+              <option value="5">5 Seconds</option>
+              <option value="10">10 Seconds</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Energy Autopilot Gateway Card -->
+        <div class="widget-card">
+          <div class="widget-header">
+            <div class="widget-title-group">
+              <span class="widget-icon bg-light-amber">⚡</span>
+              <div>
+                <h3 class="widget-title">Smart Energy Autopilot</h3>
+                <span class="widget-subtitle">Matter / Home Assistant Gateway</span>
+              </div>
+            </div>
+            <span id="autopilotStatusPill" class="status-pill-green">ALLOWED</span>
+          </div>
+
+          <div class="autopilot-detail-box">
+            <div class="ap-rec-title">Gateway Advisory:</div>
+            <p id="autopilotRec" class="ap-rec-body">Appliance operating within nominal vibration envelope.</p>
+          </div>
+
+          <div class="gateway-api-snippet">
+            <code>GET /api/v1/appliance-health</code>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 3: SAFETY AUDIT LOGS -->
+      <div id="viewLogs" class="app-view">
+        <div class="widget-card">
+          <div class="widget-header">
+            <div class="widget-title-group">
+              <span class="widget-icon bg-light-blue">📋</span>
+              <div>
+                <h3 class="widget-title">Safety Event Audit Log</h3>
+                <span class="widget-subtitle">SQLite & MQTT Actuation Feed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="log-stream-box" id="eventLogContainer">
+            <div class="log-entry">
+              <span class="log-timestamp">[INIT]</span>
+              <span class="log-message">Dual-Stream edge monitoring initialized.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Navigation Bar for Mobile -->
+    <nav class="bottom-nav-bar">
+      <button class="nav-tab active" onclick="switchNavTab('viewMonitor', this)">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+        </svg>
+        <span>Monitor</span>
+      </button>
+
+      <button class="nav-tab" onclick="switchNavTab('viewControls', this)">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+        </svg>
+        <span>Faults & AI</span>
+      </button>
+
+      <button class="nav-tab" onclick="switchNavTab('viewLogs', this)">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+        </svg>
+        <span>Safety Logs</span>
+      </button>
+    </nav>
+  </div>
+
+  <script src="/static/js/real_time_charts.js"></script>
+</body>
+</html>

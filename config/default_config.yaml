@@ -1,0 +1,87 @@
+system:
+  name: "Appliance Health Monitor"
+  version: "1.0.0"
+  log_level: "INFO"
+  inference_interval_sec: 0.25 # Process frames every 250ms
+
+sampling:
+  audio:
+    sample_rate: 16000 # 16 kHz audio
+    window_duration_sec: 0.256 # 256ms window (4096 samples at 16kHz)
+    hop_duration_sec: 0.128 # 50% overlap (2048 samples)
+    n_mels: 128
+    n_fft: 1024
+    hop_length: 256
+  vibration:
+    sample_rate: 500 # 500 Hz for 3-axis accelerometer (X, Y, Z)
+    window_duration_sec: 0.256 # 128 samples per window
+    axes: ["x", "y", "z"]
+
+appliances:
+  refrigerator:
+    id: "appliance_refrigerator_01"
+    name: "Smart Inverter Refrigerator"
+    base_motor_rpm: 1800
+    base_freq_hz: 60.0
+    nominal_audio_rms: 0.08
+    nominal_vib_rms: 0.03
+    supported_faults:
+      - "compressor_bearing_wear"
+      - "fan_blade_friction"
+      - "relay_chatter"
+  washing_machine:
+    id: "appliance_washer_01"
+    name: "Front-Load Washing Machine"
+    base_motor_rpm: 800
+    base_freq_hz: 50.0
+    nominal_audio_rms: 0.15
+    nominal_vib_rms: 0.09
+    supported_faults:
+      - "unbalance_tub"
+      - "belt_slip"
+      - "drain_cavitation"
+  water_pump:
+    id: "appliance_waterpump_01"
+    name: "High-Pressure Booster Water Pump"
+    base_motor_rpm: 2900
+    base_freq_hz: 50.0
+    nominal_audio_rms: 0.18
+    nominal_vib_rms: 0.12
+    supported_faults:
+      - "impeller_cavitation"
+      - "dry_running"
+      - "motor_bearing_wear"
+      - "pipe_water_hammer"
+
+ml:
+  model_type: "dual_stream_cnn"
+  weights_path: "ml_engine/models/appliance_classifier.pt"
+  onnx_path: "ml_engine/models/appliance_classifier.onnx"
+  fault_classes:
+    - "normal"
+    - "bearing_wear"
+    - "cavitation"
+    - "unbalance"
+    - "friction"
+    - "dry_running"
+    - "chatter_or_hammer"
+  severity_classes:
+    - "low"
+    - "medium"
+    - "critical"
+  anomaly_threshold: 0.65
+
+rules:
+  trip_persistence_seconds: 2.0 # Persistent critical fault duration required for power cutoff
+  warning_persistence_seconds: 1.0 # Persistent warning duration for alerts
+  trip_topics:
+    mqtt_topic: "smartplug/{appliance_id}/command"
+    payload_off: "OFF"
+    payload_on: "ON"
+  safety_relay:
+    enabled: true
+    simulate_gpio_pin: 18
+
+server:
+  host: "0.0.0.0"
+  port: 8000

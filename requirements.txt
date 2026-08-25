@@ -1,0 +1,11 @@
+numpy>=1.24.0
+scipy>=1.10.0
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+websockets>=11.0.0
+jinja2>=3.1.2
+pyyaml>=6.0
+torch>=2.0.0
+onnx>=1.14.0
+onnxruntime>=1.15.0
+requests>=2.31.0
